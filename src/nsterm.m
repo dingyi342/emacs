@@ -9628,10 +9628,12 @@ not_in_argv (NSString *arg)
    surfaces.  */
 
 
-- (EmacsSurface *) initWithSize: (NSSize)s
-                     ColorSpace: (CGColorSpaceRef)cs
+- (id) initWithSize: (NSSize)s
+         ColorSpace: (CGColorSpaceRef)cs
 {
   NSTRACE ("[EmacsSurface initWithSize:ColorSpace:]");
+
+  [super init];
 
   cache = [[NSMutableArray arrayWithCapacity:3] retain];
   size = s;
