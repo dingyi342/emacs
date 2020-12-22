@@ -515,7 +515,15 @@ usage: (setq [SYM VAL]...)  */)
 	xsignal2 (Qwrong_number_of_arguments, Qsetq, make_fixnum (nargs + 1));
       Lisp_Object arg = XCAR (tail);
       tail = XCDR (tail);
-      val = eval_sub (arg);
+      if (Fmember (sym, Vinhibit_setq_variable_list))
+        {
+          /* val = Fformat ("can't modify %s", sym); */
+	  /* host = Fformat (5, args + 1); */
+	  val = Qnil;
+          continue;
+        }
+      else
+        val = eval_sub (arg);
       /* Like for eval_sub, we do not check declared_special here since
 	 it's been done when let-binding.  */
       Lisp_Object lex_binding
@@ -907,13 +915,20 @@ usage: (defconst SYMBOL INITVALUE [DOCSTRING])  */)
 	error ("Too many arguments");
       docstring = XCAR (XCDR (XCDR (args)));
     }
-
-  Finternal__define_uninitialized_variable (sym, docstring);
-  tem = eval_sub (XCAR (XCDR (args)));
-  if (!NILP (Vpurify_flag))
-    tem = Fpurecopy (tem);
-  Fset_default (sym, tem);      /* FIXME: set-default-toplevel-value? */
-  Fput (sym, Qrisky_local_variable, Qt); /* FIXME: Why?  */
+  if (Fmember (sym, Vinhibit_setq_variable_list))
+    {
+      /* val = Fformat ("can't modify %s", sym); */
+      sym = Qnil;
+    }
+  else
+    {
+      Finternal__define_uninitialized_variable (sym, docstring);
+      tem = eval_sub (XCAR (XCDR (args)));
+      if (!NILP (Vpurify_flag))
+	tem = Fpurecopy (tem);
+      Fset_default (sym, tem);      /* FIXME: set-default-toplevel-value? */
+      Fput (sym, Qrisky_local_variable, Qt); /* FIXME: Why?  */
+    }
   return sym;
 }
 
@@ -4254,6 +4269,9 @@ Lisp_Object backtrace_top_function (void)
 void
 syms_of_eval (void)
 {
+  DEFVAR_LISP ("inhibit-setq-variable-list", Vinhibit_setq_variable_list,
+	       doc: /* don't setq theses variables */);
+
   DEFVAR_INT ("max-specpdl-size", max_specpdl_size,
 	      doc: /* Limit on number of Lisp variable bindings and `unwind-protect's.
 If Lisp code tries to increase the total number past this amount,
